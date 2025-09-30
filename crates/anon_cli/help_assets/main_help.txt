@@ -1,0 +1,8 @@
+Usage: anon [command] [options]
+
+Commands:
+
+  build
+  
+General Options:
+  --help            Print command-specific usage

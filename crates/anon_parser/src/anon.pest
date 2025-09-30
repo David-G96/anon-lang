@@ -1,0 +1,44 @@
+// anon.pest
+
+// --- 基础 tokens ---
+
+// 1. 行结束标记 (需要保留，以便 Rust 代码识别行边界)
+NEWLINE = { "\r\n" | "\n" }
+
+// 2. 缩进标记 (需要保留，以便 Rust 代码计算缩进级别)
+// 假设只使用空格进行缩进
+SPACE = { " " }
+TAB = { "\t" }
+
+// 3. 任何在行首的空白（我们将在 Rust 中专门处理）
+// 这里我们只定义行内使用的普通空白，并使其成为隐藏规则
+// 注意：如果你的语言中函数调用等需要行内空格，这个可以帮助
+// 我们暂时不使用 WHITESPACE，而是手动在语句中引用 SPACE
+_INLINE_WHITESPACE = { (SPACE | TAB)+ }
+
+_COMMENT_CHAR = { !("\r" | "\n") ~ ANY }
+
+// 最终的行注释规则
+_LINE_COMMENT = _{ "//" ~ _COMMENT_CHAR* }
+
+// --- 语句结构 ---
+
+WILDCARD = { "_" }
+
+// 一个简单的标识符（例如变量名、函数名）
+IDENT = { ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+
+// 假设我们有一种语句类型，例如变量赋值
+EXPRESSION = { IDENT ~ _INLINE_WHITESPACE? ~ "=" ~ _INLINE_WHITESPACE? ~ IDENT }
+
+// 一个通用的语句（我们将在 Rust 中做更细致的分类）
+STATEMENT = { EXPRESSION | IDENT } // 可以随着语言复杂性增加
+
+// --- 文件结构 ---
+
+// 定义一行内容：行首的空格 (缩进)，然后是语句，然后是换行，以及可选的注释
+// 我们不使用 `+` 或 `*`，以便让 Rust 代码能精确识别每个组件
+LINE = { (SPACE | TAB)* ~ STATEMENT ~ _LINE_COMMENT? ~ NEWLINE }
+
+// 整个文件由零个或多个行组成，最终以 EOI 结束
+file = { SOI ~ LINE* ~ EOI }
