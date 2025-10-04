@@ -1,4 +1,0 @@
-field = { (ASCII_DIGIT | "." | "-")+ }
-record = { field ~ ("," ~ field)* }
-NEWLINE = { ("\r\n" | "\n")}
-file = { SOI ~ record* ~ (NEWLINE ~ record)* ~ NEWLINE* ~ EOI }

@@ -1,37 +1,36 @@
-use std::fs::File;
-
-use pest::Parser;
 use pest_derive::Parser;
+
+use pest::iterators::Pair;
+use std::collections::VecDeque;
+
+use crate::{intern::Sym, literal::Literal, meta::NoMeta, untyped_ast::Expr};
 
 #[allow(dead_code)]
 #[derive(Parser)]
 #[grammar = "anon.pest"]
 struct AnonParser;
 
-use pest::iterators::Pair;
-use std::collections::VecDeque;
-
-// 假设这是你的 MyParser 结构体，以及生成的 Rule 枚举
-// #[derive(Parser)]
-// #[grammar = "anon.pest"]
-// struct MyParser;
-// #[derive(Debug, Clone, PartialEq)]
-// enum Rule { /* ... 所有 pest 规则 ... */ }
-
-// 1. 定义最终的 Tokens 集合，包含 INDENT 和 DEDENT
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum LanguageToken {
     // 虚拟 Tokens
     Indent,
     Dedent,
-    // 从 pest Pair 中提取的实际 Tokens
-    Statement(String),
     Newline,
+    EOF,
+
+    Identifier(Sym),
+    Literal(Literal),
+    Operator(Sym),
+    Keyword(Sym),
+    Delimiter(Sym),
+
+    // 从 pest Pair 中提取的实际 Tokens
+    #[deprecated]
+    Statement(String),
     // 占位符，用于处理所有我们不关心的 pest Tokens
     Other(Rule),
 }
-
-// 2. 缩进管理器结构
+/// pest Rule -> Language Token
 pub struct IndentManager<'a> {
     // 原始 pest Pair 的迭代器
     inner: pest::iterators::Pairs<'a, Rule>,
@@ -58,8 +57,7 @@ impl<'a> Iterator for IndentManager<'a> {
         }
 
         // 2. 获取下一个 Pair：优先从缓存中获取，其次从迭代器中获取
-        let mut pair = self.peeked_pair.take().or_else(|| self.inner.next())?;
-
+        let mut pair: Pair<'a, Rule> = self.peeked_pair.take().or_else(|| self.inner.next())?;
         // 3. 循环处理 Tokens
         loop {
             match pair.as_rule() {
@@ -137,12 +135,6 @@ impl<'a> Iterator for IndentManager<'a> {
                     }
                 }
 
-                // C. 遇到语句 (STATEMENT)
-                Rule::STATEMENT => {
-                    self.is_at_line_start = false;
-                    return Some(LanguageToken::Statement(pair.as_str().to_string()));
-                }
-
                 // D. 遇到 EOI
                 Rule::EOI => {
                     // 文件结束时，输出所有未闭合的 DEDENT Tokens
@@ -152,6 +144,20 @@ impl<'a> Iterator for IndentManager<'a> {
                     }
                     // 再次检查缓冲区，输出最后的 DEDENTs
                     return self.output_buffer.pop_front();
+                }
+
+                Rule::ATOM => {
+                    self.is_at_line_start = false;
+                    let inner_pair = pair.into_inner().next().unwrap();
+
+                    //TODO:
+                    let token = match inner_pair.as_rule() {
+                        Rule::KW_ANNOTATE => {}
+
+                        _ => {
+                            todo!()
+                        }
+                    };
                 }
 
                 // E. 忽略其他 Tokens (行内空格、注释等)
@@ -170,17 +176,55 @@ impl<'a> Iterator for IndentManager<'a> {
     }
 }
 
-pub fn parse(s: &str) {
-    let file = AnonParser::parse(Rule::file, s)
-        .expect("unsuccessful parse")
-        .next()
-        .unwrap();
-    for record in file.into_inner() {
-        match record.as_rule() {
-            _ => {
-                unreachable!()
-            }
+pub struct AstBuilder<'a> {
+    // 封装 IndentManager，它提供了我们的 Tokens 流
+    tokens: IndentManager<'a>,
+    // 用于缓存 peek 过的 Tokens，因为递归下降需要前瞻
+    // LanguageToken 已经是经过处理的 Tokens，所以现在我们用它来 peek
+    peeked_token: Option<LanguageToken>,
+}
+
+impl<'a> AstBuilder<'a> {
+    pub fn new(tokens: IndentManager<'a>) -> Self {
+        AstBuilder {
+            tokens,
+            peeked_token: None,
         }
+    }
+
+    // --- 辅助方法：处理 Tokens ---
+
+    // 获取下一个 Tokens，优先从缓存中获取
+    fn next_token(&mut self) -> Option<LanguageToken> {
+        self.peeked_token.take().or_else(|| self.tokens.next())
+    }
+
+    // 窥视下一个 Tokens，但不消耗
+    fn peek(&mut self) -> Option<&LanguageToken> {
+        if self.peeked_token.is_none() {
+            self.peeked_token = self.tokens.next();
+        }
+        self.peeked_token.as_ref()
+    }
+
+    // 消耗当前 Tokens，并检查它是否符合期望
+    fn consume(&mut self, expected: LanguageToken) -> Result<LanguageToken, String> {
+        let token = self
+            .next_token()
+            .ok_or_else(|| format!("Expected {:?}, but reached end of file", expected))?;
+
+        // 实际应用中，你可能只需要匹配 Token 的**类型**
+        if token == expected {
+            Ok(token)
+        } else {
+            Err(format!("Expected {:?}, got {:?}", expected, token))
+        }
+    }
+
+    pub fn parse(&mut self) -> Result<Expr<NoMeta>, String> {
+        while let Some(tok) = self.next_token() {}
+
+        unimplemented!()
     }
 }
 
@@ -189,38 +233,4 @@ mod test {
     use super::*;
 
     fn test_anon() {}
-
-    #[derive(Parser)]
-    #[grammar = "csv.pest"] // relative to src
-    struct CSVParser;
-
-    #[test]
-    fn test_csv() {
-        let unparsed_file = std::fs::read_to_string("src/numbers.csv").expect("cannot read file");
-        let file = CSVParser::parse(Rule::file, &unparsed_file)
-            .expect("unsuccessful parse") // unwrap the parse result
-            .next()
-            .unwrap(); // get and unwrap the `file` rule; never fails
-
-        let mut field_sum: f64 = 0.0;
-        let mut record_count: u64 = 0;
-
-        for record in file.into_inner() {
-            match record.as_rule() {
-                Rule::record => {
-                    record_count += 1;
-
-                    for field in record.into_inner() {
-                        field_sum += field.as_str().parse::<f64>().unwrap();
-                    }
-                }
-                Rule::NEWLINE => (), // ✅ 新增：忽略 NEWLINE 规则
-                Rule::EOI => (),
-                _ => unreachable!(),
-            }
-        }
-
-        println!("Sum of fields: {}", field_sum);
-        println!("Number of records: {}", record_count);
-    }
 }

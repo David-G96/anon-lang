@@ -1,0 +1,39 @@
+Date : 2025-09-30 17:31:08
+Directory : /Users/davidgao/Desktop/Workspace/anon-lang/crates/anon_parser
+Total : 12 files,  367 codes, 85 comments, 81 blanks, all 533 lines
+
+Languages
++----------+------------+------------+------------+------------+------------+
+| language | files      | code       | comment    | blank      | total      |
++----------+------------+------------+------------+------------+------------+
+| Rust     |         11 |        360 |         85 |         79 |        524 |
+| TOML     |          1 |          7 |          0 |          2 |          9 |
++----------+------------+------------+------------+------------+------------+
+
+Directories
++------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                               | files      | code       | comment    | blank      | total      |
++------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                  |         12 |        367 |         85 |         81 |        533 |
+| . (Files)                                                                          |          1 |          7 |          0 |          2 |          9 |
+| src                                                                                |         11 |        360 |         85 |         79 |        524 |
++------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| filename                                                                           | language | code       | comment    | blank      | total      |
++------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+
+| /Users/davidgao/Desktop/Workspace/anon-lang/crates/anon_parser/Cargo.toml          | TOML     |          7 |          0 |          2 |          9 |
+| /Users/davidgao/Desktop/Workspace/anon-lang/crates/anon_parser/src/intern.rs       | Rust     |         36 |          2 |          8 |         46 |
+| /Users/davidgao/Desktop/Workspace/anon-lang/crates/anon_parser/src/lib.rs          | Rust     |         10 |          0 |          0 |         10 |
+| /Users/davidgao/Desktop/Workspace/anon-lang/crates/anon_parser/src/literal.rs      | Rust     |          9 |          0 |          3 |         12 |
+| /Users/davidgao/Desktop/Workspace/anon-lang/crates/anon_parser/src/meta.rs         | Rust     |          8 |          1 |          4 |         13 |
+| /Users/davidgao/Desktop/Workspace/anon-lang/crates/anon_parser/src/parse.rs        | Rust     |        125 |         41 |         25 |        191 |
+| /Users/davidgao/Desktop/Workspace/anon-lang/crates/anon_parser/src/pattern.rs      | Rust     |         11 |          9 |          7 |         27 |
+| /Users/davidgao/Desktop/Workspace/anon-lang/crates/anon_parser/src/primitive.rs    | Rust     |          7 |          3 |          2 |         12 |
+| /Users/davidgao/Desktop/Workspace/anon-lang/crates/anon_parser/src/type_checker.rs | Rust     |          0 |          0 |          1 |          1 |
+| /Users/davidgao/Desktop/Workspace/anon-lang/crates/anon_parser/src/typed_ast.rs    | Rust     |         34 |          9 |          9 |         52 |
+| /Users/davidgao/Desktop/Workspace/anon-lang/crates/anon_parser/src/types.rs        | Rust     |         25 |          7 |          9 |         41 |
+| /Users/davidgao/Desktop/Workspace/anon-lang/crates/anon_parser/src/untyped_ast.rs  | Rust     |         95 |         13 |         11 |        119 |
+| Total                                                                              |          |        367 |         85 |         81 |        533 |
++------------------------------------------------------------------------------------+----------+------------+------------+------------+------------+

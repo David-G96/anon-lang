@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::literal::Literal;
 
 // 模式 (Pattern)

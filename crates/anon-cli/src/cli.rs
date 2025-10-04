@@ -1,7 +1,4 @@
-use std::{
-    collections::HashMap,
-    env::{self, ArgsOs, args},
-};
+use std::collections::HashMap;
 
 /// cli struct to receive env args
 /// format: command [option] [args]
