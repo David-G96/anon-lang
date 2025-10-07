@@ -1,3 +1,9 @@
 [workspace]
 resolver = "3"
-members = ["crates/anon-ast", "crates/anon-cli", "crates/anon-core", "crates/anon-parser"]
+members = [
+    "crates/anon-ast",
+    "crates/anon-cli",
+    "crates/anon-core",
+    "crates/anon-parser",
+    "crates/anon-compiler",
+]

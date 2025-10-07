@@ -17,7 +17,7 @@ impl Interner {
         }
     }
 
-    pub fn get_or_intern(&mut self, s: impl AsRef<str>) -> Symbol {
+    pub fn intern_or_get(&mut self, s: impl AsRef<str>) -> Symbol {
         let res: string_interner::symbol::SymbolU32 = self.inner.get_or_intern(s);
         Symbol(string_interner::Symbol::to_usize(res) as SymbolIndex)
     }
