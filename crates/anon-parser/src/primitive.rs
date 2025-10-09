@@ -7,5 +7,5 @@ pub enum Primitive {
     /// f64
     Float,
     /// utf8 encoded character
-    Char
+    Char,
 }

@@ -32,7 +32,6 @@ pub enum Token {
     Other(Rule),
 }
 
-
 #[derive(Debug, Clone)]
 pub struct Tokenizer<'a> {
     // 原始 pest Pair 的迭代器

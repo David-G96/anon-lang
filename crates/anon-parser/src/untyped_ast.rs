@@ -1,4 +1,3 @@
-
 use crate::{intern::Sym, literal::Literal, pattern::Pattern};
 
 /// Top level decl

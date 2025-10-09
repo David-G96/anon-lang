@@ -49,8 +49,7 @@ impl<'a> AstBuilder<'a> {
     }
 
     pub fn parse(&mut self) -> Result<Expr<NoMeta>, String> {
-        while let Some(tok) = self.next_token() {
-        }
+        while let Some(tok) = self.next_token() {}
 
         unimplemented!()
     }

@@ -53,7 +53,6 @@ ATOM = {
 }
 
 // --- File Structure ---
-
 LINE = { (SPACE | TAB)* ~ ATOM* ~ _LINE_COMMENT? ~ NEWLINE }
 
 file = { SOI ~ LINE* ~ EOI }

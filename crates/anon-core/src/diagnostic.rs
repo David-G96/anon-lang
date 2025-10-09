@@ -5,6 +5,7 @@ pub struct Diagnostic {
     pub level: Level,
     pub primary_message: String,
     pub primary_span: Span,
+    pub children: Box<Self>,
 }
 
 impl Diagnostic {}
