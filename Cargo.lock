@@ -36,6 +36,9 @@ dependencies = [
 [[package]]
 name = "anon-driver"
 version = "0.1.0"
+dependencies = [
+ "anon-core",
+]
 
 [[package]]
 name = "anon-parser"

@@ -44,7 +44,6 @@ impl Interner {
                 );
                 Some(unsafe { self.inner.resolve_unchecked(inner_sym) })
             }
-
             None => {
                 panic!(
                     "LOGIC ERROR: Symbol ID value '{}' exceeds the capacity of the inner Interner's Symbol type (SymbolU32).",
