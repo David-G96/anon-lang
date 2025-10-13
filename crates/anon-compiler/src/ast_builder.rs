@@ -1,16 +1,16 @@
-use crate::{token::Token, tokenizer::Tokenizer};
+use crate::{token::Token, line_tokenizer::LineTokenizer};
 
 #[derive(Debug, Clone)]
 pub struct AstBuilder<'a> {
     // 封装 IndentManager，它提供了我们的 Tokens 流
-    tokens: Tokenizer<'a>,
+    tokens: LineTokenizer<'a>,
     // 用于缓存 peek 过的 Tokens，因为递归下降需要前瞻
     // LanguageToken 已经是经过处理的 Tokens，所以现在我们用它来 peek
     peeked_token: Option<Token>,
 }
 
 impl<'a> AstBuilder<'a> {
-    pub fn new(tokens: Tokenizer<'a>) -> Self {
+    pub fn new(tokens: LineTokenizer<'a>) -> Self {
         AstBuilder {
             tokens,
             peeked_token: None,

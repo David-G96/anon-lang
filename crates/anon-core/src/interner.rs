@@ -6,7 +6,7 @@ use string_interner::{StringInterner, symbol::SymbolU32};
 pub type SymbolIndex = u32;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Symbol(SymbolIndex);
+pub struct Symbol(pub SymbolIndex);
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Interner {
@@ -51,5 +51,44 @@ impl Interner {
                 );
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test() {
+        let mut interner = Interner::new();
+
+        let test_str1 = "abc";
+        let test_str2 = "!@#";
+        let test_str3 = "# The Anon programming language
+
+The Anon programming language is designed to be easy and elegant. We put utility and unification first in order to decrease the difficulties to use and remember.
+
+## The category of Anon programming language
+
+To be specific, the anon programming language is a functional, statically typed, memory-automatically managed, out-of-the-box language and a set of tools.
+
+## The features of Anon programming language
+
+* Immutable is better than mutable
+* Every effect should be tracked
+* Type does not implies the memory layout
+* Name is important
+* The behaviors of an object defines itself
+* We will do want you need to do but you don't want to
+* Leave the 1% edge case for us to get 200% of efficiency for you
+";
+
+        let sym1 = interner.intern_or_get(test_str1);
+        let sym2 = interner.intern_or_get(test_str2);
+        let sym3 = interner.intern_or_get(test_str3);
+
+        assert_eq!(interner.resolve(sym1), Some(test_str1));
+        assert_eq!(interner.resolve(sym2), Some(test_str2));
+        assert_eq!(interner.resolve(sym3), Some(test_str3));
     }
 }

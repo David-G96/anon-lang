@@ -26,6 +26,7 @@ KW_EXPORT = {"export"}
 KW_CLASS = {"class"}
 KW_INSTANCE = {"instance"}
 KW_ANNOTATE = {"::"}
+KW_EQ = {"="}
 
 // 2. Identifiers
 IDENT = { ("_" | ASCII_ALPHA) ~ (ASCII_ALPHANUMERIC | "_")* }
@@ -33,7 +34,7 @@ IDENT = { ("_" | ASCII_ALPHA) ~ (ASCII_ALPHANUMERIC | "_")* }
 // 3. Operators
 OP_ADD = {"+"}
 OP_MUL = {"*"}
-DELIMITER_EQ = {"="}
+// DELIMITER_EQ = {"="}
 DELIMITER_LPAREN = {"("}
 DELIMITER_RPAREN = {")"}
 
@@ -47,7 +48,9 @@ STRING = { ("\"") ~ (ANY*) ~ ("\"") }
 ATOM = {
     KW_ANNOTATE | KW_CASE | KW_CLASS | KW_ELSE | KW_EXPORT | KW_IF |
     KW_IMPORT | KW_IN | KW_INSTANCE | KW_LET | KW_MATCH | KW_THEN | 
-    DELIMITER_EQ | DELIMITER_LPAREN | DELIMITER_RPAREN |
+    KW_EQ |
+    // DELIMITER_EQ 
+    DELIMITER_LPAREN | DELIMITER_RPAREN |
     INTEGER | FLOAT | CHARACTER | STRING |
     IDENT
 }
@@ -55,4 +58,4 @@ ATOM = {
 // --- File Structure ---
 LINE = { (SPACE | TAB)* ~ ATOM* ~ _LINE_COMMENT? ~ NEWLINE }
 
-file = { SOI ~ LINE* ~ EOI }
+File = { SOI ~ LINE* ~ EOI }

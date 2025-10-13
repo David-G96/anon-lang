@@ -1,10 +1,10 @@
 use anon_ast::literal::Literal;
 
-use crate::tokenizer::Rule;
+use crate::line_tokenizer::Rule;
 
 pub type Sym = anon_core::interner::Symbol;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Copy)]
 pub enum Token {
     Indent,
     Dedent,
