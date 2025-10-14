@@ -1,18 +1,18 @@
-use core::panic;
-use std::{cell::RefCell, collections::VecDeque, iter::Peekable, os::unix::raw::uid_t, rc::Rc};
+use std::{cell::RefCell, collections::VecDeque, rc::Rc, vec};
 
 use anon_ast::literal::Literal;
 use anon_core::interner::Interner;
 use pest::iterators::{Pair, Pairs};
 use pest_derive::Parser;
 
-use crate::token::{self, Token};
+use crate::token::Token;
 
 #[allow(dead_code)]
 #[derive(Parser)]
 #[grammar = "anon.pest"]
 pub struct AnonParser;
 
+/// 请注意，LineTokenizer不负责输出NEWLINE，只会消耗。生成NEWLINE职责已经转移到了FileTokenizer
 #[derive(Debug, Clone)]
 pub struct LineTokenizer<'a> {
     // 原始 pest Pair 的迭代器
@@ -51,6 +51,22 @@ impl<'a> LineTokenizer<'a> {
             interner,
         }
     }
+
+    pub fn new_line_pairs(
+        pair: Pairs<'a, Rule>,
+        tab_width: usize,
+        interner: Rc<RefCell<Interner>>,
+    ) -> Self {
+        Self {
+            inner: pair,
+            peeked_pair: None,
+            indent_stack: vec![],
+            output_buffer: VecDeque::new(),
+            is_at_line_start: true,
+            tab_width: 4,
+            interner,
+        }
+    }
 }
 
 impl<'a> Iterator for LineTokenizer<'a> {
@@ -62,93 +78,13 @@ impl<'a> Iterator for LineTokenizer<'a> {
         }
         let mut pair = self.peeked_pair.take().or_else(|| self.inner.next())?;
         loop {
-            dbg!(pair.as_rule());
             match pair.as_rule() {
                 // A. 遇到换行符 (NEWLINE)
                 Rule::NEWLINE => {
                     self.is_at_line_start = true;
+                    return None;
                     return Some(Token::Newline);
                 }
-
-                // B. 遇到缩进 (SPACE 或 TAB)
-                // Rule::SPACE | Rule::TAB if self.is_at_line_start && false => {
-                //     // --- 核心缩进计算逻辑 ---
-                //     let mut current_indent: usize = 0;
-
-                //     // 消耗所有连续的缩进 Tokens
-                //     let mut last_pair = pair; // 从当前 pair 开始计算
-
-                //     loop {
-                //         match last_pair.as_rule() {
-                //             Rule::SPACE => {
-                //                 current_indent += last_pair.as_str().len();
-                //             }
-                //             Rule::TAB => {
-                //                 // 将 Tab 转换为等效的空格数
-                //                 current_indent += last_pair.as_str().len() * self.tab_width;
-                //             }
-                //             // 遇到第一个非缩进 Token，停止计算并缓存它
-                //             _ => {
-                //                 self.peeked_pair = Some(last_pair); // 缓存多读的 pair
-                //                 break;
-                //             }
-                //         }
-
-                //         // 尝试消耗下一个 pair
-                //         if let Some(next_pair) = self.inner.next() {
-                //             last_pair = next_pair;
-                //         } else {
-                //             // 文件结束，并且最后的 tokens 都是缩进
-                //             break;
-                //         }
-                //     }
-                //     // --- 缩进计算和 INDENT/DEDENT 注入 ---
-
-                //     self.is_at_line_start = false;
-                //     let last_indent = *self.indent_stack.last().unwrap_or(&0);
-
-                //     if current_indent > last_indent {
-                //         // 缩进增加 (INDENT)
-                //         self.indent_stack.push(current_indent);
-                //         self.output_buffer.push_back(Token::Indent);
-                //     } else if current_indent < last_indent {
-                //         // 缩进减少 (DEDENT)
-                //         while self.indent_stack.last().unwrap_or(&0) > &current_indent {
-                //             self.indent_stack.pop();
-                //             self.output_buffer.push_back(Token::Dedent);
-                //         }
-                //         // 检查缩进是否对齐（Python 风格的严格缩进）
-                //         if *self.indent_stack.last().unwrap_or(&0) != current_indent {
-                //             panic!(
-                //                 "Inconsistent dedent level: expected one of {:?}, got {}",
-                //                 self.indent_stack, current_indent
-                //             );
-                //         }
-                //     }
-
-                //     // 再次检查缓冲区，然后继续 while 循环
-                //     if let Some(token) = self.output_buffer.pop_front() {
-                //         return Some(token);
-                //     }
-
-                //     // 如果缓冲区为空，且缓存了非缩进 Token，则继续外层循环
-                //     if self.peeked_pair.is_some() {
-                //         pair = self.peeked_pair.take().unwrap();
-                //         continue; // 继续处理缓存的非缩进 token
-                //     }
-                // }
-
-                // // D. 遇到 EOI
-                // Rule::EOI => {
-                //     panic!("this tokenizer should only focus on line rules, not EOI!");
-                //     // 文件结束时，输出所有未闭合的 DEDENT Tokens
-                //     while self.indent_stack.len() > 1 {
-                //         self.indent_stack.pop();
-                //         self.output_buffer.push_back(Token::Dedent);
-                //     }
-                //     // 再次检查缓冲区，输出最后的 DEDENTs
-                //     return self.output_buffer.pop_front();
-                // }
 
                 Rule::ATOM => {
                     self.is_at_line_start = false;
@@ -196,7 +132,9 @@ impl<'a> Iterator for LineTokenizer<'a> {
                             Token::Identifier(self.interner.borrow_mut().intern_or_get(ident))
                         }
 
-                        Rule::NEWLINE => Token::Newline,
+                        Rule::NEWLINE => {
+                            return None;
+                        }
                         // TODO!
                         _ => todo!(),
                     };
@@ -215,27 +153,26 @@ impl<'a> Iterator for LineTokenizer<'a> {
     }
 }
 
-
 #[cfg(test)]
 mod test {
     use pest::Parser;
 
     use super::*;
     #[test]
-    fn test_assign() {
-        let test_str1 = "x=1\n";
-        let file = AnonParser::parse(Rule::LINE, test_str1)
+    fn test_int_assign() {
+        let test_str1 = "x =1\n";
+        let line = AnonParser::parse(Rule::LINE, test_str1)
             .expect("unsuccessful parse")
             .next()
             .unwrap();
 
         let interner = Rc::new(RefCell::new(Interner::new()));
-        let tokenizer = LineTokenizer::new(file, 4, interner.clone());
+        let tokenizer = LineTokenizer::new(line, 4, interner.clone());
 
         let tokens: Vec<_> = tokenizer.collect();
 
-        // 3 atom + 1 NEWLINE
-        assert_eq!(tokens.len(), 4);
+        // 3 atoms
+        assert_eq!(tokens.len(), 3);
 
         assert_eq!(
             tokens.first(),
@@ -249,36 +186,67 @@ mod test {
 
         assert_eq!(tokens.get(2), Some(&Token::Literal(Literal::Integer(1))));
 
-        assert_eq!(tokens.get(3), Some(&Token::Newline));
+        assert!(
+            tokens.last().is_some() && (tokens.last() != Some(&Token::Newline)),
+            "The end of tokens should not be NewLine!"
+        );
     }
 
-    // fn test_multiline_assign() {
-    //     let test_str1 = "x=1\ny=2\n";
-    //     let line = AnonParser::parse(Rule::LINE, test_str1)
-    //         .expect("unsuccessful parse")
-    //         .next()
-    //         .unwrap();
+    #[test]
+    fn test_negative_float_assign() {
+        let test_str1 = "x=-1.1\n";
+        let line = AnonParser::parse(Rule::LINE, test_str1)
+            .expect("unsuccessful parse")
+            .next()
+            .unwrap();
 
-    //     let interner = Rc::new(RefCell::new(Interner::new()));
-    //     let tokenizer = Tokenizer::new(line.into_inner(), 4, interner.clone());
+        let interner = Rc::new(RefCell::new(Interner::new()));
+        let tokenizer = LineTokenizer::new(line, 4, interner.clone());
 
-    //     let tokens: Vec<_> = tokenizer.collect();
+        let tokens: Vec<_> = tokenizer.collect();
+        // 3 atoms
+        assert_eq!(tokens.len(), 3);
 
-    //     // 3 atom + 1 NEWLINE
-    //     assert_eq!(tokens.len(), 4);
+        assert_eq!(
+            tokens.first(),
+            Some(&Token::Identifier(interner.borrow_mut().intern_or_get("x")))
+        );
 
-    //     assert_eq!(
-    //         tokens.first(),
-    //         Some(&Token::Identifier(interner.borrow_mut().intern_or_get("x")))
-    //     );
+        assert_eq!(
+            tokens.get(1),
+            Some(&Token::Keyword(interner.borrow_mut().intern_or_get("=")))
+        );
 
-    //     assert_eq!(
-    //         tokens.get(1),
-    //         Some(&Token::Keyword(interner.borrow_mut().intern_or_get("=")))
-    //     );
+        assert_eq!(tokens.get(2), Some(&Token::Literal(Literal::Float(-1.1))));
 
-    //     assert_eq!(tokens.get(2), Some(&Token::Literal(Literal::Integer(1))));
+        assert!(
+            tokens.last().is_some() && (tokens.last() != Some(&Token::Newline)),
+            "The end of tokens should not be NewLine!"
+        );
+    }
 
-    //     assert_eq!(tokens.get(3), Some(&Token::Newline));
-    // }
+    #[test]
+    fn test_line_comment() {
+        let test_str1 = "-- This is a line comment!\n";
+        let line = AnonParser::parse(Rule::LINE, test_str1)
+            .expect("unsuccessful parse")
+            .next()
+            .unwrap();
+
+        let interner = Rc::new(RefCell::new(Interner::new()));
+        let tokenizer = LineTokenizer::new(line, 4, interner.clone());
+
+        let tokens: Vec<_> = tokenizer.collect();
+
+        dbg!(&tokens);
+        // 3 atoms
+        assert_eq!(tokens.len(), 0);
+
+        assert!(
+            tokens.last() != Some(&Token::Newline),
+            "The end of tokens should not be NewLine!"
+        );
+    }
+
+
 }

@@ -39,8 +39,8 @@ DELIMITER_LPAREN = {"("}
 DELIMITER_RPAREN = {")"}
 
 // 4. Literals
+FLOAT = { ("-"?) ~ (ASCII_DIGIT+) ~ (".") ~ (ASCII_DIGIT+)}
 INTEGER = {("-"?) ~ ASCII_DIGIT+ }
-FLOAT = { ("-"?) ~ (ASCII_DIGIT+) ~ (".") ~ (ASCII_DIGIT)+}
 CHARACTER = { ("'") ~ ANY* ~ ("'")}
 STRING = { ("\"") ~ (ANY*) ~ ("\"") }
 
@@ -51,7 +51,7 @@ ATOM = {
     KW_EQ |
     // DELIMITER_EQ 
     DELIMITER_LPAREN | DELIMITER_RPAREN |
-    INTEGER | FLOAT | CHARACTER | STRING |
+    FLOAT | INTEGER | CHARACTER | STRING |
     IDENT
 }
 
