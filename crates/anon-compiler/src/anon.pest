@@ -41,8 +41,18 @@ DELIMITER_RPAREN = {")"}
 // 4. Literals
 FLOAT = { ("-"?) ~ (ASCII_DIGIT+) ~ (".") ~ (ASCII_DIGIT+)}
 INTEGER = {("-"?) ~ ASCII_DIGIT+ }
-CHARACTER = { ("'") ~ ANY* ~ ("'")}
-STRING = { ("\"") ~ (ANY*) ~ ("\"") }
+
+// 字符字面量内容：不是反斜杠，也不是单引号，也不是换行符
+_CHAR_INNER = { !("'" | "\\" | NEWLINE) ~ ANY }
+// 转义字符：反斜杠后面跟任何字符
+_ESCAPED_CHAR = { "\\" ~ ANY }
+CHARACTER = { "'" ~ (_CHAR_INNER | _ESCAPED_CHAR) ~ "'" }
+
+// 字符串字面量内容：不是反斜杠，不是双引号，也不是换行符
+_STRING_CONTENT_CHAR = { !("\"" | "\\" | NEWLINE) ~ ANY }
+// 转义序列：反斜杠后面跟任何字符
+_STRING_ESCAPE = { "\\" ~ ANY }
+STRING = { "\"" ~ (_STRING_CONTENT_CHAR | _STRING_ESCAPE)* ~ "\"" }
 
 // --- Atom --- 
 ATOM = {

@@ -1,9 +1,9 @@
-use std::{cell::RefCell, collections::VecDeque, iter::Peekable, rc::Rc};
+use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
 use anon_core::interner::Interner;
 use pest::iterators::{Pair, Pairs};
 
-use crate::{line_tokenizer::*, token::Token};
+use crate::{line_tokenizer::*, token::Token, token_stream::TokenStream};
 
 pub struct FileTokenizer<'a> {
     // 外部迭代器：提供 Rule::LINE 和 Rule::EOI
@@ -187,8 +187,81 @@ impl<'a> Iterator for FileTokenizer<'a> {
     }
 }
 
- 
+impl<'a> TokenStream<'a> for FileTokenizer<'a> {}
 
+pub fn normalize_source_code_and_despace(raw_source: &str) -> String {
+    let mut output = String::new();
+    let in_string = false;
+    let is_at_line_start = true;
+
+    // 首先，确保文件以换行符结束（我们之前讨论过的规范化）
+    let source_with_nl = if raw_source.ends_with('\n') {
+        raw_source.to_string()
+    } else {
+        let mut s = raw_source.to_string();
+        s.push('\n');
+        s
+    };
+
+    for line in source_with_nl.lines() {
+        let mut first_content_char_index = 0;
+        let mut leading_whitespace = String::new();
+
+        // 1. 识别并保留行首的缩进（SPACE/TAB）
+        for (i, c) in line.chars().enumerate() {
+            if c == ' ' || c == '\t' {
+                leading_whitespace.push(c);
+            } else {
+                first_content_char_index = i;
+                break;
+            }
+        }
+        output.push_str(&leading_whitespace);
+
+        // 2. 处理行内容：移除所有多余的空格，保留字面量内部的空格
+        let content = &line[first_content_char_index..];
+        let mut content_output = String::new();
+        let mut in_quotes = false; // 简化处理，只检查单双引号
+
+        for c in content.chars() {
+            if c == '"' || c == '\'' {
+                in_quotes = !in_quotes; // 切换引号状态
+                content_output.push(c);
+            } else if c.is_whitespace() && !in_quotes {
+                // 如果在引号外部，忽略空格（或将其替换为单个占位符，如果你的ATOM*需要分隔符）
+                // 鉴于你的 ATOM* 不允许分隔符，我们直接跳过。
+                continue;
+            } else {
+                content_output.push(c);
+            }
+        }
+
+        // 3. 将处理后的内容添加到输出
+        output.push_str(&content_output);
+
+        // 4. 确保行结束符（除了最后一行，我们之前已经加过了）
+        // 这里必须使用原始的换行符，以防止 lines() 迭代器导致的丢失
+        output.push('\n');
+    }
+
+    // 移除最后一次添加的额外换行符（lines() 迭代器的副作用）
+    output.pop();
+
+    output
+}
+
+pub fn normalize_ending_newline(raw_source: &str) -> String {
+    // TODO: cannot handle \r\n
+    if !raw_source.ends_with('\n') {
+        format!("{}\n", raw_source)
+    } else {
+        raw_source.to_string()
+    }
+}
+
+// 示例：
+// 输入: "x = 1.1\n    y = 2"
+// 输出: "x=1.1\n    y=2\n" (近似效果)
 
 #[cfg(test)]
 mod test {
@@ -252,5 +325,17 @@ mod test {
             Some(&Token::Literal(anon_ast::literal::Literal::Integer(3)))
         );
         assert_eq!(tokens.get(13), Some(&Token::Newline));
+    }
+
+    #[test]
+    fn test_normalize() {
+        let raw_source = "x = 1.1\n    y = 2";
+        let res = normalize_source_code_and_despace(raw_source);
+        let expected = "x=1.1\n    y=2";
+        assert_eq!(res, expected);
+
+        let res = normalize_ending_newline(&res);
+        let expected = "x=1.1\n    y=2\n";
+        assert_eq!(res, expected);
     }
 }

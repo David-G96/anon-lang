@@ -160,7 +160,7 @@ mod test {
     use super::*;
     #[test]
     fn test_int_assign() {
-        let test_str1 = "x =1\n";
+        let test_str1 = "x=1\n";
         let line = AnonParser::parse(Rule::LINE, test_str1)
             .expect("unsuccessful parse")
             .next()
@@ -226,6 +226,40 @@ mod test {
     }
 
     #[test]
+    fn test_char_assign() {
+        let test_str1 = "x='a'\n";
+        let line = AnonParser::parse(Rule::LINE, test_str1)
+            .expect("unsuccessful parse")
+            .next()
+            .unwrap();
+
+        let interner = Rc::new(RefCell::new(Interner::new()));
+        let tokenizer = LineTokenizer::new(line, 4, interner.clone());
+
+        let tokens: Vec<_> = tokenizer.collect();
+        dbg!(&tokens);
+        // 3 atoms
+        assert_eq!(tokens.len(), 3);
+    }
+
+    #[test]
+    fn test_string_assign() {
+        let test_str1 = "x=\"abcd\"\n";
+        let line = AnonParser::parse(Rule::LINE, test_str1)
+            .expect("unsuccessful parse")
+            .next()
+            .unwrap();
+
+        let interner = Rc::new(RefCell::new(Interner::new()));
+        let tokenizer = LineTokenizer::new(line, 4, interner.clone());
+
+        let tokens: Vec<_> = tokenizer.collect();
+        dbg!(&tokens);
+        // 3 atoms
+        assert_eq!(tokens.len(), 3);
+    }
+
+    #[test]
     fn test_line_comment() {
         let test_str1 = "-- This is a line comment!\n";
         let line = AnonParser::parse(Rule::LINE, test_str1)
@@ -247,6 +281,4 @@ mod test {
             "The end of tokens should not be NewLine!"
         );
     }
-
-
 }
