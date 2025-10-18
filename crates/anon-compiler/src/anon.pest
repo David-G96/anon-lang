@@ -12,7 +12,7 @@ _LINE_COMMENT = _{ "--" ~ _COMMENT_CHAR* }
 
 // The optional rules
 //WHITESPACE = _{ " " | "\t" }
-//COMMENT = _{ _LINE_COMMENT }
+COMMENT = _{ _LINE_COMMENT }
 
 // --- Atomic Tokens ---
 

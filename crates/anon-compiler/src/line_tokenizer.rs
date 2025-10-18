@@ -1,42 +1,29 @@
-use std::{cell::RefCell, collections::VecDeque, rc::Rc, vec};
+use pest_derive::Parser;
+use std::{cell::RefCell, rc::Rc};
 
+use crate::{keyword::Keyword::*, operator::Operator};
 use anon_ast::literal::Literal;
 use anon_core::interner::Interner;
 use pest::iterators::{Pair, Pairs};
-use pest_derive::Parser;
 
 use crate::token::Token;
 
-#[allow(dead_code)]
 #[derive(Parser)]
 #[grammar = "anon.pest"]
-pub struct AnonParser;
+pub struct PestParser;
 
-/// 请注意，LineTokenizer不负责输出NEWLINE，只会消耗。生成NEWLINE职责已经转移到了FileTokenizer
 #[derive(Debug, Clone)]
 pub struct LineTokenizer<'a> {
     // 原始 pest Pair 的迭代器
-    inner: pest::iterators::Pairs<'a, Rule>,
-    // 储存上一个读取的Pair，模拟实现peek效果
-    peeked_pair: Option<Pair<'a, Rule>>,
-    // 用于跟踪当前的缩进级别（栈）
-    indent_stack: Vec<usize>,
-    // 缓存 INDENT/DEDENT/Statement，以便按顺序输出
-    output_buffer: VecDeque<Token>,
-    // 记录是否在行首 (用于跳过空行)
-    is_at_line_start: bool,
-    // tab大小，用于兼容tab对应的空格数，通常为4
-    tab_width: usize,
+    pairs: pest::iterators::Pairs<'a, Rule>,
+    // String Interner
     interner: Rc<RefCell<Interner>>,
+    buffer: Option<Pair<'a, Rule>>,
 }
 
 impl<'a> LineTokenizer<'a> {
-    // par仅接受line层级rule LINE = { (SPACE | TAB)* ~ ATOM* ~ _LINE_COMMENT? ~ NEWLINE }
-    pub fn new(
-        pair: Pair<'a, Rule>,
-        tab_width: usize,
-        interner: Rc<RefCell<Interner>>,
-    ) -> Self {
+    /// pair仅接受line层级rule LINE = { (SPACE | TAB)* ~ ATOM* ~ _LINE_COMMENT? ~ NEWLINE }
+    pub fn new(pair: Pair<'a, Rule>, interner: Rc<RefCell<Interner>>) -> Self {
         assert_eq!(
             pair.as_rule(),
             Rule::LINE,
@@ -46,30 +33,51 @@ impl<'a> LineTokenizer<'a> {
         let inner_pairs = pair.into_inner();
 
         Self {
-            inner: inner_pairs,
-            peeked_pair: None,
-            indent_stack: vec![],
-            output_buffer: VecDeque::new(),
-            is_at_line_start: true,
-            tab_width,
+            pairs: inner_pairs,
             interner,
+            buffer: None,
         }
     }
-
+    ///  你需要自己确保Pairs都是来自line
     pub fn new_line_pairs(
-        pair: Pairs<'a, Rule>,
-        tab_width: usize,
+        pairs: Pairs<'a, Rule>,
         interner: Rc<RefCell<Interner>>,
     ) -> Self {
         Self {
-            inner: pair,
-            peeked_pair: None,
-            indent_stack: vec![],
-            output_buffer: VecDeque::new(),
-            is_at_line_start: true,
-            tab_width: 4,
+            pairs,
             interner,
+            buffer: None,
         }
+    }
+
+    /// parse the whole line, returns the indent count and the rest tokens,
+    pub fn parse_line(mut self, tab_width: u32) -> (usize, Vec<Token>) {
+        let mut indent_count = 0usize;
+
+        loop {
+            match self.pairs.next() {
+                Some(pair) => match pair.as_rule() {
+                    Rule::INDENT => {
+                        let indent_text = pair.as_str();
+                        indent_count += indent_text.chars().fold(0usize, |acc, c| {
+                            if c == '\t' {
+                                acc + tab_width as usize
+                            } else {
+                                acc + 1
+                            }
+                        });
+                    }
+                    _ => {
+                        self.buffer = Some(pair);
+                        break;
+                    }
+                },
+                None => break,
+            }
+        }
+
+        // collect remaining tokens from the same iterator we used above
+        (indent_count, self.collect())
     }
 }
 
@@ -77,81 +85,86 @@ impl<'a> Iterator for LineTokenizer<'a> {
     type Item = Token;
 
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(token) = self.output_buffer.pop_front() {
-            return Some(token);
-        }
-        let mut pair = self.peeked_pair.take().or_else(|| self.inner.next())?;
-        loop {
-            match pair.as_rule() {
-                // A. 遇到换行符 (NEWLINE)
-                Rule::NEWLINE => {
-                    self.is_at_line_start = true;
-                    return None;
-                    return Some(Token::Newline);
-                }
-
-                Rule::ATOM => {
-                    self.is_at_line_start = false;
-                    let inner_pair = pair.into_inner().next().unwrap();
-                    let token = match inner_pair.as_rule() {
-                        Rule::KW_CASE
-                        | Rule::KW_CLASS
-                        | Rule::KW_ELSE
-                        | Rule::KW_EXPORT
-                        | Rule::KW_IF
-                        | Rule::KW_IMPORT
-                        | Rule::KW_IN
-                        | Rule::KW_INSTANCE
-                        | Rule::KW_LET
-                        | Rule::KW_MATCH
-                        | Rule::KW_THEN => Token::Keyword(
-                            self.interner
-                                .borrow_mut()
-                                .intern_or_get(inner_pair.as_str()),
-                        ),
-                        Rule::FLOAT => Token::Literal(Literal::Float(
-                            inner_pair.as_str().parse().unwrap(),
-                        )),
-                        Rule::INTEGER => Token::Literal(Literal::Integer(
-                            inner_pair.as_str().parse().unwrap(),
-                        )),
-
-                        Rule::CHARACTER => {
-                            let raw_char = inner_pair.as_str();
-                            let content = &raw_char[1..raw_char.len() - 1];
-                            Token::Literal(Literal::Char(content.parse().unwrap()))
-                        }
-                        Rule::STRING => {
-                            // Remove surrounding quotes and intern the string value
-                            let raw_str = inner_pair.as_str();
-                            let content = raw_str[1..raw_str.len() - 1].to_string(); // naive unquote
-                            Token::Literal(Literal::String(
-                                self.interner.borrow_mut().intern_or_get(&content),
-                            ))
-                        }
-                        Rule::IDENT => {
-                            let ident = inner_pair.as_str();
-                            Token::Identifier(
-                                self.interner.borrow_mut().intern_or_get(ident),
-                            )
-                        }
-
-                        Rule::NEWLINE => {
-                            return None;
-                        }
-                        // TODO!
-                        _ => todo!(),
-                    };
-                    return Some(token);
-                }
-
-                _ => {}
+        // 优先从缓存里读取，然后从迭代器self.pairs里读取，最后再返回None
+        let line_pair = self.buffer.take().or_else(|| self.pairs.next())?;
+        match line_pair.as_rule() {
+            Rule::NEWLINE => {
+                Some(Token::Newline)
             }
+            Rule::ATOM => {
+                let atom_pair = line_pair.into_inner().next().unwrap();
+                let token = match atom_pair.as_rule() {
+                    Rule::KW_CASE => Token::Keyword(Case),
+                    Rule::KW_CLASS => Token::Keyword(Class),
+                    Rule::KW_DATA => Token::Keyword(Data),
+                    Rule::KW_ELSE => Token::Keyword(Else),
+                    Rule::KW_EXPORT => Token::Keyword(Export),
+                    Rule::KW_IF => Token::Keyword(If),
+                    Rule::KW_IMPORT => Token::Keyword(Import),
+                    Rule::KW_IN => Token::Keyword(In),
+                    Rule::KW_INSTANCE => Token::Keyword(Instance),
+                    Rule::KW_LET => Token::Keyword(Let),
+                    Rule::KW_MATCH => Token::Keyword(Match),
+                    Rule::KW_THEN => Token::Keyword(Then),
+                    Rule::KW_TYPE => Token::Keyword(Type),
+                    Rule::FLOAT => Token::Literal(Literal::Float(
+                        atom_pair.as_str().parse().unwrap(),
+                    )),
+                    Rule::INTEGER => Token::Literal(Literal::Integer(
+                        atom_pair.as_str().parse().unwrap(),
+                    )),
+                    Rule::CHARACTER => {
+                        let raw_char = atom_pair.as_str();
+                        let content = &raw_char[1..raw_char.len() - 1];
+                        Token::Literal(Literal::Char(content.parse().unwrap()))
+                    }
+                    Rule::STRING => {
+                        // Remove surrounding quotes and intern the string value
+                        let raw_str = atom_pair.as_str();
+                        let content = raw_str[1..raw_str.len() - 1].to_string(); // naive unquote
+                        Token::Literal(Literal::String(
+                            self.interner.borrow_mut().intern_or_get(&content),
+                        ))
+                    }
+                    Rule::IDENT => {
+                        let ident = atom_pair.as_str();
+                        Token::Identifier(
+                            self.interner.borrow_mut().intern_or_get(ident),
+                        )
+                    }
+                    Rule::NEWLINE => {
+                        return None;
+                    }
+                    Rule::OP_ADD => Token::Operator(Operator::Add),
+                    Rule::OP_NEG => Token::Operator(Operator::Negate),
+                    Rule::OP_EQ => Token::Operator(Operator::Eq),
+                    Rule::OP_MUL => Token::Operator(Operator::Mul),
+                    Rule::DELIMITER_ANNOTATE => {
+                        Token::Delimiter(crate::delimiter::Delimiter::Annotate)
+                    }
+                    Rule::DELIMITER_COMMA => {
+                        Token::Delimiter(crate::delimiter::Delimiter::Comma)
+                    }
+                    Rule::DELIMITER_LPAREN => {
+                        Token::Delimiter(crate::delimiter::Delimiter::LParen)
+                    }
+                    Rule::DELIMITER_RPAREN => {
+                        Token::Delimiter(crate::delimiter::Delimiter::RParen)
+                    }
+                    Rule::DELIMITER_UNDERSCORE => {
+                        Token::Delimiter(crate::delimiter::Delimiter::UnderScore)
+                    }
 
-            if let Some(next_pair) = self.inner.next() {
-                pair = next_pair;
-            } else {
-                return None;
+                    y => {
+                        unreachable!("Unreachable Atom rule: {:#?}", y)
+                    }
+                };
+                Some(token)
+            }
+            Rule::SPACE => self.next(),
+
+            x => {
+                unreachable!("Unreachable Line rule: {:#?}", x)
             }
         }
     }
@@ -159,130 +172,232 @@ impl<'a> Iterator for LineTokenizer<'a> {
 
 #[cfg(test)]
 mod test {
+
     use pest::Parser;
 
     use super::*;
+
+    use Literal::*;
+    use Operator::*;
+
     #[test]
-    fn test_int_assign() {
-        let test_str1 = "x=1\n";
-        let line = AnonParser::parse(Rule::LINE, test_str1)
+    fn test_empty() {
+        let test_str = "\n";
+        let line = PestParser::parse(super::Rule::LINE, test_str)
             .expect("unsuccessful parse")
             .next()
             .unwrap();
 
         let interner = Rc::new(RefCell::new(Interner::new()));
-        let tokenizer = LineTokenizer::new(line, 4, interner.clone());
+        let line_tokenizer = LineTokenizer::new(line, interner.clone());
 
-        let tokens: Vec<_> = tokenizer.collect();
+        let tokens: Vec<Token> = line_tokenizer.collect();
+        let expected: Vec<Token> = vec![Token::Newline];
 
-        // 3 atoms
-        assert_eq!(tokens.len(), 3);
+        assert_eq!(expected, tokens);
+    }
 
-        assert_eq!(
-            tokens.first(),
-            Some(&Token::Identifier(interner.borrow_mut().intern_or_get("x")))
-        );
+    #[test]
+    fn test_int_assign() {
+        let test_str = "foo =1 \n";
+        let line = PestParser::parse(super::Rule::LINE, test_str)
+            .expect("unsuccessful parse")
+            .next()
+            .unwrap();
 
-        assert_eq!(
-            tokens.get(1),
-            Some(&Token::Keyword(interner.borrow_mut().intern_or_get("=")))
-        );
+        let interner = Rc::new(RefCell::new(Interner::new()));
+        let line_tokenizer = LineTokenizer::new(line, interner.clone());
 
-        assert_eq!(tokens.get(2), Some(&Token::Literal(Literal::Integer(1))));
+        let tokens: Vec<_> = line_tokenizer.collect();
+        let expected: Vec<_> = vec![
+            Token::Identifier(interner.borrow_mut().intern_or_get("foo")),
+            Token::Operator(Operator::Eq),
+            Token::Literal(Literal::Integer(1)),
+            Token::Newline,
+        ];
 
-        assert!(
-            tokens.last().is_some() && (tokens.last() != Some(&Token::Newline)),
-            "The end of tokens should not be NewLine!"
-        );
+        assert_eq!(expected, tokens);
     }
 
     #[test]
     fn test_negative_float_assign() {
-        let test_str1 = "x=-1.1\n";
-        let line = AnonParser::parse(Rule::LINE, test_str1)
+        let test_str = "bar = -1.1 \n";
+        let line = PestParser::parse(super::Rule::LINE, test_str)
             .expect("unsuccessful parse")
             .next()
             .unwrap();
 
         let interner = Rc::new(RefCell::new(Interner::new()));
-        let tokenizer = LineTokenizer::new(line, 4, interner.clone());
+        let line_tokenizer = LineTokenizer::new(line, interner.clone());
 
-        let tokens: Vec<_> = tokenizer.collect();
-        // 3 atoms
-        assert_eq!(tokens.len(), 3);
+        let tokens: Vec<_> = line_tokenizer.collect();
+        let expected: Vec<_> = vec![
+            Token::Identifier(interner.borrow_mut().intern_or_get("bar")),
+            Token::Operator(Eq),
+            Token::Operator(Negate),
+            Token::Literal(Float(1.1)),
+            Token::Newline,
+        ];
 
-        assert_eq!(
-            tokens.first(),
-            Some(&Token::Identifier(interner.borrow_mut().intern_or_get("x")))
-        );
-
-        assert_eq!(
-            tokens.get(1),
-            Some(&Token::Keyword(interner.borrow_mut().intern_or_get("=")))
-        );
-
-        assert_eq!(tokens.get(2), Some(&Token::Literal(Literal::Float(-1.1))));
-
-        assert!(
-            tokens.last().is_some() && (tokens.last() != Some(&Token::Newline)),
-            "The end of tokens should not be NewLine!"
-        );
-    }
-
-    #[test]
-    fn test_char_assign() {
-        let test_str1 = "x='a'\n";
-        let line = AnonParser::parse(Rule::LINE, test_str1)
-            .expect("unsuccessful parse")
-            .next()
-            .unwrap();
-
-        let interner = Rc::new(RefCell::new(Interner::new()));
-        let tokenizer = LineTokenizer::new(line, 4, interner.clone());
-
-        let tokens: Vec<_> = tokenizer.collect();
-        dbg!(&tokens);
-        // 3 atoms
-        assert_eq!(tokens.len(), 3);
-    }
-
-    #[test]
-    fn test_string_assign() {
-        let test_str1 = "x=\"abcd\"\n";
-        let line = AnonParser::parse(Rule::LINE, test_str1)
-            .expect("unsuccessful parse")
-            .next()
-            .unwrap();
-
-        let interner = Rc::new(RefCell::new(Interner::new()));
-        let tokenizer = LineTokenizer::new(line, 4, interner.clone());
-
-        let tokens: Vec<_> = tokenizer.collect();
-        dbg!(&tokens);
-        // 3 atoms
-        assert_eq!(tokens.len(), 3);
+        assert_eq!(expected, tokens);
     }
 
     #[test]
     fn test_line_comment() {
-        let test_str1 = "-- This is a line comment!\n";
-        let line = AnonParser::parse(Rule::LINE, test_str1)
+        let test_str = "--345\n";
+        let line = PestParser::parse(super::Rule::LINE, test_str)
             .expect("unsuccessful parse")
             .next()
             .unwrap();
 
         let interner = Rc::new(RefCell::new(Interner::new()));
-        let tokenizer = LineTokenizer::new(line, 4, interner.clone());
+        let line_tokenizer = LineTokenizer::new(line, interner.clone());
 
-        let tokens: Vec<_> = tokenizer.collect();
+        let tokens: Vec<_> = line_tokenizer.collect();
+        let expected: Vec<_> = vec![Token::Newline];
 
-        dbg!(&tokens);
-        // 3 atoms
-        assert_eq!(tokens.len(), 0);
+        assert_eq!(expected, tokens);
+    }
 
-        assert!(
-            tokens.last() != Some(&Token::Newline),
-            "The end of tokens should not be NewLine!"
-        );
+    #[test]
+    fn test_character_assign() {
+        let test_str = "c = 'c' \n";
+        let line = PestParser::parse(super::Rule::LINE, test_str)
+            .expect("unsuccessful parse")
+            .next()
+            .unwrap();
+
+        let interner = Rc::new(RefCell::new(Interner::new()));
+        let line_tokenizer = LineTokenizer::new(line, interner.clone());
+
+        let tokens: Vec<_> = line_tokenizer.collect();
+        let expected: Vec<_> = vec![
+            Token::Identifier(interner.borrow_mut().intern_or_get("c")),
+            Token::Operator(Eq),
+            Token::Literal(Char('c')),
+            Token::Newline,
+        ];
+
+        assert_eq!(expected, tokens);
+    }
+
+    #[test]
+    fn test_string_assign() {
+        let test_str = "s = \"I love the way you lie.\" \n";
+        let line = PestParser::parse(super::Rule::LINE, test_str)
+            .expect("unsuccessful parse")
+            .next()
+            .unwrap();
+
+        let interner = Rc::new(RefCell::new(Interner::new()));
+        let line_tokenizer = LineTokenizer::new(line, interner.clone());
+
+        let tokens: Vec<Token> = line_tokenizer.collect();
+        let s_sym = { interner.borrow_mut().intern_or_get("s") };
+        let lit_sym = {
+            interner
+                .borrow_mut()
+                .intern_or_get("I love the way you lie.")
+        };
+
+        let expected = vec![
+            Token::Identifier(s_sym),
+            Token::Operator(Eq),
+            Token::Literal(Literal::String(lit_sym)), // 假设 Token::Literal 接受 Symbol
+            Token::Newline,
+        ];
+
+        assert_eq!(expected, tokens);
+    }
+
+    #[test]
+    fn test_parse_line_space() {
+        let test_str = "    x = 1 \n";
+        let line = PestParser::parse(super::Rule::LINE, test_str)
+            .expect("unsuccessful parse")
+            .next()
+            .unwrap();
+
+        let interner = Rc::new(RefCell::new(Interner::new()));
+        let line_tokenizer = LineTokenizer::new(line, interner.clone());
+
+        let (indent_count, tokens) = line_tokenizer.parse_line(4);
+
+        assert_eq!(4, indent_count);
+
+        let s_sym = { interner.borrow_mut().intern_or_get("x") };
+
+        let expected = vec![
+            Token::Identifier(s_sym),
+            Token::Operator(Eq),
+            Token::Literal(Literal::Integer(1)), // 假设 Token::Literal 接受 Symbol
+            Token::Newline,
+        ];
+
+        assert_eq!(expected, tokens);
+    }
+
+    #[test]
+    fn test_parse_line_tab() {
+        let test_str = "\ts = \"I love the way you lie.\"\n";
+        let line = PestParser::parse(super::Rule::LINE, test_str)
+            .expect("unsuccessful parse")
+            .next()
+            .unwrap();
+
+        let interner = Rc::new(RefCell::new(Interner::new()));
+        let line_tokenizer = LineTokenizer::new(line, interner.clone());
+
+        let (indent_count, tokens) = line_tokenizer.parse_line(4);
+
+        assert_eq!(4, indent_count);
+
+        let s_sym = { interner.borrow_mut().intern_or_get("s") };
+        let lit_sym = {
+            interner
+                .borrow_mut()
+                .intern_or_get("I love the way you lie.")
+        };
+
+        let expected = vec![
+            Token::Identifier(s_sym),
+            Token::Operator(Eq),
+            Token::Literal(Literal::String(lit_sym)), // 假设 Token::Literal 接受 Symbol
+            Token::Newline,
+        ];
+
+        assert_eq!(expected, tokens);
+    }
+
+    #[test]
+    fn test_parse_line_hybrid() {
+        let test_str = "  \t      s = \"I love the way you lie.\"\n";
+        let line = PestParser::parse(super::Rule::LINE, test_str)
+            .expect("unsuccessful parse")
+            .next()
+            .unwrap();
+
+        let interner = Rc::new(RefCell::new(Interner::new()));
+        let line_tokenizer = LineTokenizer::new(line, interner.clone());
+
+        let (indent_count, tokens) = line_tokenizer.parse_line(4);
+
+        assert_eq!(12, indent_count);
+
+        let s_sym = { interner.borrow_mut().intern_or_get("s") };
+        let lit_sym = {
+            interner
+                .borrow_mut()
+                .intern_or_get("I love the way you lie.")
+        };
+
+        let expected = vec![
+            Token::Identifier(s_sym),
+            Token::Operator(Eq),
+            Token::Literal(Literal::String(lit_sym)), // 假设 Token::Literal 接受 Symbol
+            Token::Newline,
+        ];
+
+        assert_eq!(expected, tokens);
     }
 }
