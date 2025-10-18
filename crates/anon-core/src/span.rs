@@ -9,7 +9,10 @@ pub struct Span {
 }
 
 impl Span {
-    pub unsafe fn new_unchecked(start: impl Into<SpanIndex>, end: impl Into<SpanIndex>) -> Self {
+    pub unsafe fn new_unchecked(
+        start: impl Into<SpanIndex>,
+        end: impl Into<SpanIndex>,
+    ) -> Self {
         Self {
             start: start.into(),
             end: end.into(),

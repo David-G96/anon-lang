@@ -9,6 +9,7 @@ pub type WithID<Val> = Contextual<SourceId, Val>;
 
 #[derive(Debug)]
 pub struct Source {
+    pub file_name: String,
     pub content: String,
 }
 
