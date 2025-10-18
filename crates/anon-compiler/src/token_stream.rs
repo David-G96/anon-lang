@@ -1,5 +1,7 @@
 // token_stream.rs
 
+use anon_core::span::Spanned;
+
 // 假设你的 Token 类型定义在这里
 use crate::token::Token;
 
@@ -11,3 +13,5 @@ pub trait TokenStream<'a>: Iterator<Item = Token> {
     // 如果需要，可以添加一个返回行号/列号的方法
     // fn current_span(&self) -> Span;
 }
+
+pub trait SpannedTokenStream<'a>: Iterator<Item = Spanned<Token>> {}
