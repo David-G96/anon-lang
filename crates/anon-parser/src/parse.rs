@@ -57,7 +57,8 @@ impl<'a> Iterator for IndentManager<'a> {
         }
 
         // 2. 获取下一个 Pair：优先从缓存中获取，其次从迭代器中获取
-        let mut pair: Pair<'a, Rule> = self.peeked_pair.take().or_else(|| self.inner.next())?;
+        let mut pair: Pair<'a, Rule> =
+            self.peeked_pair.take().or_else(|| self.inner.next())?;
         // 3. 循环处理 Tokens
         loop {
             match pair.as_rule() {
@@ -82,7 +83,8 @@ impl<'a> Iterator for IndentManager<'a> {
                             }
                             Rule::TAB => {
                                 // 将 Tab 转换为等效的空格数
-                                current_indent += last_pair.as_str().len() * self.tab_width;
+                                current_indent +=
+                                    last_pair.as_str().len() * self.tab_width;
                             }
                             // 遇到第一个非缩进 Token，停止计算并缓存它
                             _ => {
@@ -209,9 +211,9 @@ impl<'a> AstBuilder<'a> {
 
     // 消耗当前 Tokens，并检查它是否符合期望
     fn consume(&mut self, expected: LanguageToken) -> Result<LanguageToken, String> {
-        let token = self
-            .next_token()
-            .ok_or_else(|| format!("Expected {:?}, but reached end of file", expected))?;
+        let token = self.next_token().ok_or_else(|| {
+            format!("Expected {:?}, but reached end of file", expected)
+        })?;
 
         // 实际应用中，你可能只需要匹配 Token 的**类型**
         if token == expected {

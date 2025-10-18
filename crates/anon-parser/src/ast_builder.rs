@@ -36,9 +36,9 @@ impl<'a> AstBuilder<'a> {
 
     // 消耗当前 Tokens，并检查它是否符合期望
     fn consume(&mut self, expected: Token) -> Result<Token, String> {
-        let token = self
-            .next_token()
-            .ok_or_else(|| format!("Expected {:?}, but reached end of file", expected))?;
+        let token = self.next_token().ok_or_else(|| {
+            format!("Expected {:?}, but reached end of file", expected)
+        })?;
 
         // 实际应用中，你可能只需要匹配 Token 的**类型**
         if token == expected {

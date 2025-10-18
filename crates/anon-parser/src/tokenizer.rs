@@ -83,7 +83,8 @@ impl<'a> Iterator for Tokenizer<'a> {
                             }
                             Rule::TAB => {
                                 // 将 Tab 转换为等效的空格数
-                                current_indent += last_pair.as_str().len() * self.tab_width;
+                                current_indent +=
+                                    last_pair.as_str().len() * self.tab_width;
                             }
                             // 遇到第一个非缩进 Token，停止计算并缓存它
                             _ => {

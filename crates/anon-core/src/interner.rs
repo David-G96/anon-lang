@@ -32,6 +32,12 @@ impl Interner {
         Symbol(string_interner::Symbol::to_usize(res) as SymbolIndex)
     }
 
+    pub fn get(&self, s: impl AsRef<str>) -> Option<Symbol> {
+        self.inner.get(s).map(|sym_u32| {
+            Symbol(string_interner::Symbol::to_usize(sym_u32) as SymbolIndex)
+        })
+    }
+
     pub fn resolve(&self, sym: Symbol) -> Option<&str> {
         let inner_sym_result =
             <SymbolU32 as string_interner::Symbol>::try_from_usize(sym.0 as usize);

@@ -1,4 +1,8 @@
-use crate::{token::Token, line_tokenizer::LineTokenizer};
+use std::{cell::RefCell, rc::Rc};
+
+use anon_core::interner::Interner;
+
+use crate::{line_tokenizer::LineTokenizer, token::Token};
 
 #[derive(Debug, Clone)]
 pub struct AstBuilder<'a> {
@@ -7,13 +11,15 @@ pub struct AstBuilder<'a> {
     // 用于缓存 peek 过的 Tokens，因为递归下降需要前瞻
     // LanguageToken 已经是经过处理的 Tokens，所以现在我们用它来 peek
     peeked_token: Option<Token>,
+    interner: Rc<RefCell<Interner>>,
 }
 
 impl<'a> AstBuilder<'a> {
-    pub fn new(tokens: LineTokenizer<'a>) -> Self {
+    pub fn new(tokens: LineTokenizer<'a>, interner: Rc<RefCell<Interner>>) -> Self {
         AstBuilder {
             tokens,
             peeked_token: None,
+            interner,
         }
     }
 
@@ -32,9 +38,9 @@ impl<'a> AstBuilder<'a> {
 
     // 消耗当前 Tokens，并检查它是否符合期望
     fn consume(&mut self, expected: Token) -> Result<Token, String> {
-        let token = self
-            .next_token()
-            .ok_or_else(|| format!("Expected {:?}, but reached end of file", expected))?;
+        let token = self.next_token().ok_or_else(|| {
+            format!("Expected {:?}, but reached end of file", expected)
+        })?;
 
         // 实际应用中，你可能只需要匹配 Token 的**类型**
         if token == expected {

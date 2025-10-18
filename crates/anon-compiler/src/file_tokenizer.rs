@@ -14,7 +14,6 @@ pub struct FileTokenizer<'a> {
 
     // LineTokenizer 实例：用于处理当前行的语句内容
     line_tokenizer: Option<LineTokenizer<'a>>,
-
     // 缩进状态
     indent_stack: Vec<usize>,
 

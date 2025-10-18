@@ -1,0 +1,4 @@
+edition = "2021"
+max_width = 88
+# comment_width = 80
+# blank_lines_upper_bound = 1

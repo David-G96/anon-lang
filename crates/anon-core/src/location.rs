@@ -7,7 +7,10 @@ pub struct Location {
 }
 
 impl Location {
-    pub fn new(line: impl Into<LocationIndex>, column: impl Into<LocationIndex>) -> Self {
+    pub fn new(
+        line: impl Into<LocationIndex>,
+        column: impl Into<LocationIndex>,
+    ) -> Self {
         Self {
             line: line.into(),
             column: column.into(),

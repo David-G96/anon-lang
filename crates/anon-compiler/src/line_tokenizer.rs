@@ -32,7 +32,11 @@ pub struct LineTokenizer<'a> {
 
 impl<'a> LineTokenizer<'a> {
     // par仅接受line层级rule LINE = { (SPACE | TAB)* ~ ATOM* ~ _LINE_COMMENT? ~ NEWLINE }
-    pub fn new(pair: Pair<'a, Rule>, tab_width: usize, interner: Rc<RefCell<Interner>>) -> Self {
+    pub fn new(
+        pair: Pair<'a, Rule>,
+        tab_width: usize,
+        interner: Rc<RefCell<Interner>>,
+    ) -> Self {
         assert_eq!(
             pair.as_rule(),
             Rule::LINE,
@@ -90,8 +94,7 @@ impl<'a> Iterator for LineTokenizer<'a> {
                     self.is_at_line_start = false;
                     let inner_pair = pair.into_inner().next().unwrap();
                     let token = match inner_pair.as_rule() {
-                        Rule::KW_ANNOTATE
-                        | Rule::KW_CASE
+                        Rule::KW_CASE
                         | Rule::KW_CLASS
                         | Rule::KW_ELSE
                         | Rule::KW_EXPORT
@@ -101,18 +104,17 @@ impl<'a> Iterator for LineTokenizer<'a> {
                         | Rule::KW_INSTANCE
                         | Rule::KW_LET
                         | Rule::KW_MATCH
-                        | Rule::KW_EQ
                         | Rule::KW_THEN => Token::Keyword(
                             self.interner
                                 .borrow_mut()
                                 .intern_or_get(inner_pair.as_str()),
                         ),
-                        Rule::FLOAT => {
-                            Token::Literal(Literal::Float(inner_pair.as_str().parse().unwrap()))
-                        }
-                        Rule::INTEGER => {
-                            Token::Literal(Literal::Integer(inner_pair.as_str().parse().unwrap()))
-                        }
+                        Rule::FLOAT => Token::Literal(Literal::Float(
+                            inner_pair.as_str().parse().unwrap(),
+                        )),
+                        Rule::INTEGER => Token::Literal(Literal::Integer(
+                            inner_pair.as_str().parse().unwrap(),
+                        )),
 
                         Rule::CHARACTER => {
                             let raw_char = inner_pair.as_str();
@@ -129,7 +131,9 @@ impl<'a> Iterator for LineTokenizer<'a> {
                         }
                         Rule::IDENT => {
                             let ident = inner_pair.as_str();
-                            Token::Identifier(self.interner.borrow_mut().intern_or_get(ident))
+                            Token::Identifier(
+                                self.interner.borrow_mut().intern_or_get(ident),
+                            )
                         }
 
                         Rule::NEWLINE => {

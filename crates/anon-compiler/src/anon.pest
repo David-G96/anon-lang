@@ -3,17 +3,20 @@
 // --- Basic Tokens ---
 
 NEWLINE = { "\r\n" | "\n" }
-SPACE = { " " }
-TAB = { "\t" }
-_INLINE_WHITESPACE = { (SPACE | TAB)+ }
-_COMMENT_CHAR = { !("\r" | "\n") ~ ANY }
+SPACE = @{ " " }
+TAB = @{ "\t" }
+_INLINE_WHITESPACE = _{ (SPACE | TAB)+ }
+_MAYBE_INLINE_WHITESPACE = _{ (SPACE | TAB)* }
+_COMMENT_CHAR = { (!("\r\n" | "\n")) ~ ANY }
 _LINE_COMMENT = _{ "--" ~ _COMMENT_CHAR* }
+
+// The optional rules
+//WHITESPACE = _{ " " | "\t" }
+//COMMENT = _{ _LINE_COMMENT }
 
 // --- Atomic Tokens ---
 
-WILDCARD = { "_" }
-
-// 1. Keywords
+// Keywords
 KW_LET = {"let"}
 KW_IN = {"in"}
 KW_IF = {"if"}
@@ -25,22 +28,29 @@ KW_IMPORT = {"import"}
 KW_EXPORT = {"export"}
 KW_CLASS = {"class"}
 KW_INSTANCE = {"instance"}
-KW_ANNOTATE = {"::"}
-KW_EQ = {"="}
+KW_DATA = {"data"}
+KW_TYPE = {"type"}
 
-// 2. Identifiers
-IDENT = { ("_" | ASCII_ALPHA) ~ (ASCII_ALPHANUMERIC | "_")* }
+// Identifiers
+IDENT = @{ ("_" | ASCII_ALPHA) ~ (ASCII_ALPHANUMERIC | "_")* }
 
-// 3. Operators
+// Operators
 OP_ADD = {"+"}
 OP_MUL = {"*"}
-// DELIMITER_EQ = {"="}
+OP_NEG = {"-"}
+OP_DIV = {"/"}
+OP_EQ = {"="}
+
+// Delimiters
 DELIMITER_LPAREN = {"("}
 DELIMITER_RPAREN = {")"}
+DELIMITER_COMMA = {","}
+DELIMITER_ANNOTATE = {"::"}
+DELIMITER_UNDERSCORE = {"_"}
 
 // 4. Literals
-FLOAT = { ("-"?) ~ (ASCII_DIGIT+) ~ (".") ~ (ASCII_DIGIT+)}
-INTEGER = {("-"?) ~ ASCII_DIGIT+ }
+FLOAT = @{ ("-"?) ~ (ASCII_DIGIT+) ~ (".") ~ (ASCII_DIGIT+)}
+INTEGER = @{("-"?) ~ ASCII_DIGIT+ }
 
 // 字符字面量内容：不是反斜杠，也不是单引号，也不是换行符
 _CHAR_INNER = { !("'" | "\\" | NEWLINE) ~ ANY }
@@ -56,16 +66,19 @@ STRING = { "\"" ~ (_STRING_CONTENT_CHAR | _STRING_ESCAPE)* ~ "\"" }
 
 // --- Atom --- 
 ATOM = {
-    KW_ANNOTATE | KW_CASE | KW_CLASS | KW_ELSE | KW_EXPORT | KW_IF |
+    KW_CASE | KW_CLASS | KW_ELSE | KW_EXPORT | KW_IF |
     KW_IMPORT | KW_IN | KW_INSTANCE | KW_LET | KW_MATCH | KW_THEN | 
-    KW_EQ |
-    // DELIMITER_EQ 
-    DELIMITER_LPAREN | DELIMITER_RPAREN |
+    KW_DATA | KW_TYPE |
+    OP_ADD | OP_DIV | OP_EQ | OP_MUL | OP_NEG |
+    DELIMITER_LPAREN | DELIMITER_RPAREN | DELIMITER_ANNOTATE |
+    DELIMITER_UNDERSCORE | 
     FLOAT | INTEGER | CHARACTER | STRING |
     IDENT
 }
 
-// --- File Structure ---
-LINE = { (SPACE | TAB)* ~ ATOM* ~ _LINE_COMMENT? ~ NEWLINE }
+INDENT  = @{ (" " | "\t")+ } 
 
-File = { SOI ~ LINE* ~ EOI }
+// --- File Structure ---
+LINE = { INDENT? ~ (ATOM ~ (_INLINE_WHITESPACE*))* ~ _LINE_COMMENT? ~ NEWLINE }
+
+File = { LINE* ~ EOI }

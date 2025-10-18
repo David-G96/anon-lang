@@ -1,6 +1,6 @@
 use anon_ast::literal::Literal;
 
-use crate::line_tokenizer::Rule;
+use crate::{delimiter::Delimiter, keyword::Keyword, lexer::Rule, operator::Operator};
 
 pub type Sym = anon_core::interner::Symbol;
 
@@ -13,9 +13,9 @@ pub enum Token {
 
     Identifier(Sym),
     Literal(Literal),
-    Operator(Sym),
-    Keyword(Sym),
-    Delimiter(Sym),
+    Operator(Operator),
+    Keyword(Keyword),
+    Delimiter(Delimiter),
 
     // 从 pest Pair 中提取的实际 Tokens
     #[deprecated]
