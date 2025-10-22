@@ -25,3 +25,12 @@ impl Location {
         self.column
     }
 }
+
+impl<T: Into<u32>> From<(T, T)> for Location {
+    fn from(value: (T, T)) -> Self {
+        Self {
+            line: value.0.into(),
+            column: value.1.into(),
+        }
+    }
+}

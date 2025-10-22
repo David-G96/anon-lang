@@ -80,3 +80,68 @@ impl LineMap {
         self.len
     }
 }
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_lf() {
+        let source = "a\nbc\n\ndef\n\ngh";
+        let line_map = LineMap::new(source);
+
+        assert_eq!(line_map.len(), source.len());
+        let expected: Vec<usize> = vec![0, 2, 5, 7, 10, 12];
+        assert_eq!(expected, line_map.line_starts);
+
+        let locs: Vec<_> = expected
+            .iter()
+            .map(|&x| line_map.index_to_location(x as u32))
+            .collect();
+
+        let expected: Vec<_> = vec![
+            (0u32, 0u32),
+            (1u32, 0u32),
+            (2u32, 0u32),
+            (3u32, 0u32),
+            (4, 0),
+            (5, 0),
+        ]
+        .iter()
+        .map(|&x| Location::from(x))
+        .map(Option::Some)
+        .collect();
+
+        assert_eq!(expected, locs);
+    }
+
+    #[test]
+    fn test_crlf() {
+        let source = "a\r\nbc\r\n\r\ndef\r\n\r\ngh";
+        let line_map = LineMap::new(source);
+
+        assert_eq!(line_map.len(), source.len());
+        let expected: Vec<usize> = vec![0, 3, 7, 10, 14, 17];
+        assert_eq!(expected, line_map.line_starts);
+
+        let locs: Vec<_> = expected
+            .iter()
+            .map(|&x| line_map.index_to_location(x as u32))
+            .collect();
+
+        let expected: Vec<_> = vec![
+            (0u32, 0u32),
+            (1u32, 0u32),
+            (2u32, 0u32),
+            (3u32, 0u32),
+            (4, 0),
+            (5, 0),
+        ]
+        .iter()
+        .map(|&x| Location::from(x))
+        .map(Option::Some)
+        .collect();
+
+        assert_eq!(expected, locs);
+    }
+}
