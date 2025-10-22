@@ -91,7 +91,7 @@ mod test {
         let line_map = LineMap::new(source);
 
         assert_eq!(line_map.len(), source.len());
-        let expected: Vec<usize> = vec![0, 2, 5, 7, 10, 12];
+        let expected: Vec<usize> = vec![0, 2, 5, 6, 10, 11];
         assert_eq!(expected, line_map.line_starts);
 
         let locs: Vec<_> = expected
@@ -121,7 +121,7 @@ mod test {
         let line_map = LineMap::new(source);
 
         assert_eq!(line_map.len(), source.len());
-        let expected: Vec<usize> = vec![0, 3, 7, 10, 14, 17];
+        let expected: Vec<usize> = vec![0, 3, 7, 9, 14, 16];
         assert_eq!(expected, line_map.line_starts);
 
         let locs: Vec<_> = expected
