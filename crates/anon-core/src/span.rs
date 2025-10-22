@@ -2,6 +2,7 @@ use crate::context::Contextual;
 
 pub type SpanIndex = u32;
 
+/// simple raw file string span
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Span {
     start: SpanIndex,

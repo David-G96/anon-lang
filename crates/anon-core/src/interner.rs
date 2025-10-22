@@ -8,6 +8,7 @@ pub type SymbolIndex = u32;
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct Symbol(pub SymbolIndex);
 
+/// a single thread interner
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub struct Interner {
     inner: StringInterner<string_interner::backend::StringBackend>,

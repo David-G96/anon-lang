@@ -1,5 +1,6 @@
 pub type LocationIndex = u32;
 
+/// represents a 0-indexed location in the file
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Location {
     line: LocationIndex,

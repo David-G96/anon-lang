@@ -1,6 +1,7 @@
 use crate::buffered_iter::MultiBufferIter;
 use crate::location::Location;
 
+/// a line map which calculates the start index of each line for faster indexing
 #[derive(Debug)]
 pub struct LineMap {
     line_starts: Vec<usize>,
@@ -16,7 +17,7 @@ impl LineMap {
         let mut buffered_iter = MultiBufferIter::new(char_indices);
 
         loop {
-            if let Some((idx, c)) = buffered_iter.next() {
+            if let Some((_, c)) = buffered_iter.next() {
                 // 找到换行符 LF
                 if c == '\n' {
                     // 换行符之后还有字符，说明下一个字符是行首
@@ -32,7 +33,7 @@ impl LineMap {
                 // 可能是换行符 CRLF
                 else if c == '\r' {
                     //　之后是\n
-                    if let Some((next_idx, '\n')) = buffered_iter.next() {
+                    if let Some((_, '\n')) = buffered_iter.next() {
                         // CRLF之后还有字符，说明下一个字符是行首
                         if let Some((next_next_idx, next_next_c)) = buffered_iter.next()
                         {

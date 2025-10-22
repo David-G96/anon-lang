@@ -17,6 +17,7 @@ pub struct Source {
     pub content: String,
 }
 
+/// source map to store and index sources
 #[derive(Debug)]
 pub struct SourceMap {
     sources: Vec<Source>,

@@ -1,11 +1,13 @@
+//! This mod provides two "put-back-able" iterators: SingleBufferIter and MultiBufferIter
 
-/// A buffer iterator with single buffer, allows you to put back an item
+/// A buffer iterator with single buffer, allows you to put back one item.
 pub struct SingleBufferIter<T: Iterator> {
     inner: T,
     buffer: Option<T::Item>,
 }
 
 impl<T: Iterator> SingleBufferIter<T> {
+    /// creates a new SingleBufferIter with the specific Iterator
     pub fn new(inner: T) -> Self {
         Self {
             inner,
@@ -13,6 +15,8 @@ impl<T: Iterator> SingleBufferIter<T> {
         }
     }
 
+    /// try to put back one item.
+    /// returns Ok if the buffer is empty, returns Err and the item if the buffer is occupied.
     pub fn try_put_back(&mut self, value: T::Item) -> Result<(), T::Item> {
         match self.buffer.is_some() {
             true => Err(value),
@@ -43,7 +47,7 @@ impl<T: Iterator> Iterator for SingleBufferIter<T> {
     }
 }
 
-/// A multi buffer Iterator, allows you to put back multiple items
+/// A multi buffer Iterator, allows you to put back multiple items.
 pub struct MultiBufferIter<T: Iterator> {
     inner: T,
     buffer: Vec<T::Item>,

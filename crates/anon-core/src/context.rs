@@ -1,10 +1,5 @@
-use crate::interner::Interner;
-
+/// puts Val in the context of Ctx
 pub struct Contextual<Ctx, Val> {
     pub context: Ctx,
     pub value: Val,
-}
-
-pub struct Context {
-    pub interner: Interner,
 }
