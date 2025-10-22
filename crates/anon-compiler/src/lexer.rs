@@ -9,6 +9,7 @@ use crate::{
     token::Token,
 };
 
+#[derive(Debug, Clone)]
 pub struct Lexer<'a> {
     // 外部迭代器：提供 Rule::LINE 和 Rule::EOI
     file_pairs: Pairs<'a, Rule>,

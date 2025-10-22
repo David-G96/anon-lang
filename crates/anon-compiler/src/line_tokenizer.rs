@@ -12,6 +12,7 @@ use crate::token::Token;
 #[grammar = "anon.pest"]
 pub struct PestParser;
 
+/// 单行lexer
 #[derive(Debug, Clone)]
 pub struct LineTokenizer<'a> {
     // 原始 pest Pair 的迭代器
