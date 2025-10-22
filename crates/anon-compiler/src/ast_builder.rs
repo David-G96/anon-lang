@@ -38,11 +38,10 @@ impl<'a> Parser<'a> {
 
     // 窥视下一个 Tokens，但不消耗
     fn peek(&mut self) -> Option<&Token> {
-        if self.buffered_tokens.is_empty() {
-            if let Some(tok) = self.lexer.next() {
+        if self.buffered_tokens.is_empty()
+            && let Some(tok) = self.lexer.next() {
                 self.buffered_tokens.push_back(tok);
             }
-        }
         self.buffered_tokens.front()
     }
 

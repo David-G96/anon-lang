@@ -29,12 +29,12 @@ impl Cli {
 pub struct Command {
     pub name: String,
     pub option: Vec<String>,
-    pub call_back: Box<dyn Fn(&Vec<String>) -> ()>,
+    pub call_back: Box<dyn Fn(&Vec<String>)>,
 }
 
 impl Command {
     pub fn process(&self, args: &Vec<String>) {
-        (self.call_back)(&args)
+        (self.call_back)(args)
     }
 
     pub fn help() -> Self {

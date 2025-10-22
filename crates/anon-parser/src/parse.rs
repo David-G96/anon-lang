@@ -153,7 +153,7 @@ impl<'a> Iterator for IndentManager<'a> {
                     let inner_pair = pair.into_inner().next().unwrap();
 
                     //TODO:
-                    let token = match inner_pair.as_rule() {
+                    match inner_pair.as_rule() {
                         Rule::KW_ANNOTATE => {}
 
                         _ => {

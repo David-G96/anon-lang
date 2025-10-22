@@ -22,7 +22,7 @@ impl Span {
     pub fn new(start: impl Into<SpanIndex>, end: impl Into<SpanIndex>) -> Option<Self> {
         let start = start.into();
         let end = end.into();
-        (start <= end).then(|| Self { start, end })
+        (start <= end).then_some(Self { start, end })
     }
 
     pub fn start(self) -> SpanIndex {

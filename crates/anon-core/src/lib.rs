@@ -6,3 +6,5 @@ pub mod location;
 pub mod source;
 pub mod span;
 pub mod buffered_iter;
+
+pub use crate::source::SourceMap;

@@ -1,4 +1,3 @@
-use std::collections::VecDeque;
 
 /// A buffer iterator with single buffer, allows you to put back an item
 pub struct SingleBufferIter<T: Iterator> {

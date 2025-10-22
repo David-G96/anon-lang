@@ -1,6 +1,6 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use crate::{context::Contextual, source};
+use crate::context::Contextual;
 
 pub type SourceIdIndex = u32;
 
@@ -20,6 +20,12 @@ pub struct Source {
 #[derive(Debug)]
 pub struct SourceMap {
     sources: Vec<Source>,
+}
+
+impl Default for SourceMap {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl SourceMap {

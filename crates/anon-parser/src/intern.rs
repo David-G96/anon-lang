@@ -35,14 +35,14 @@ impl Interner {
         match self.map.get(&str) {
             // 字符串已经存在，只需要返回
             Some(&idx) => {
-                return StringId::from_u32(idx);
+                StringId::from_u32(idx)
             }
             // 字符串尚未内联
             None => {
                 let id = self.strings.len();
                 self.strings.push(str.clone());
                 self.map.insert(str, id as u32);
-                return StringId::from_u32(id as u32);
+                StringId::from_u32(id as u32)
             }
         }
     }
