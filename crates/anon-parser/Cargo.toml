@@ -1,9 +1,0 @@
-[package]
-name = "anon-parser"
-version = "0.1.0"
-edition = "2024"
-
-[dependencies]
-anon-core = { path = "../anon-core" }
-pest = "2.8.2"
-pest_derive = "2.8.2"

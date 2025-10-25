@@ -2,10 +2,13 @@ use core::panic;
 use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
 use anon_core::interner::Interner;
-use pest::iterators::{Pair, Pairs};
+use pest::{
+    Parser as _,
+    iterators::{Pair, Pairs},
+};
 
 use crate::{
-    line_tokenizer::{LineTokenizer, Rule},
+    line_tokenizer::{LineTokenizer, PestParser, Rule},
     token::Token,
 };
 
@@ -25,6 +28,18 @@ pub struct Lexer<'a> {
 
 impl<'a> Lexer<'a> {
     pub fn new(
+        test_str: &'a str,
+        tab_width: u32,
+        interner: Rc<RefCell<Interner>>,
+    ) -> Self {
+        let file = PestParser::parse(Rule::File, test_str)
+            .expect("unsuccessful parse")
+            .next()
+            .unwrap();
+        Self::new_from_pair(file, tab_width, interner)
+    }
+
+    pub fn new_from_pair(
         file_pair: Pair<'a, Rule>,
         tab_width: u32,
         interner: Rc<RefCell<Interner>>,
@@ -119,7 +134,7 @@ mod test {
             .unwrap();
 
         let interner = Rc::new(RefCell::new(Interner::new()));
-        let lexer = Lexer::new(file, 4, interner.clone());
+        let lexer = Lexer::new_from_pair(file, 4, interner.clone());
 
         let tokens: Vec<_> = lexer.collect();
 
@@ -143,7 +158,7 @@ mod test {
             .unwrap();
 
         let interner = Rc::new(RefCell::new(Interner::new()));
-        let lexer = Lexer::new(file, 4, interner.clone());
+        let lexer = Lexer::new_from_pair(file, 4, interner.clone());
 
         let tokens: Vec<_> = lexer.collect();
 
@@ -174,7 +189,7 @@ mod test {
             .unwrap();
 
         let interner = Rc::new(RefCell::new(Interner::new()));
-        let lexer = Lexer::new(file, 4, interner.clone());
+        let lexer = Lexer::new_from_pair(file, 4, interner.clone());
 
         let tokens: Vec<_> = lexer.collect();
 
@@ -207,7 +222,7 @@ mod test {
             .unwrap();
 
         let interner = Rc::new(RefCell::new(Interner::new()));
-        let lexer = Lexer::new(file, 4, interner.clone());
+        let lexer = Lexer::new_from_pair(file, 4, interner.clone());
 
         let tokens: Vec<_> = lexer.collect();
 
@@ -250,7 +265,7 @@ mod test {
             .unwrap();
 
         let interner = Rc::new(RefCell::new(Interner::new()));
-        let lexer = Lexer::new(file, 4, interner.clone());
+        let lexer = Lexer::new_from_pair(file, 4, interner.clone());
 
         let tokens: Vec<_> = lexer.collect();
 

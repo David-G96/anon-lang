@@ -1,6 +1,8 @@
 use anon_ast::literal::Literal;
 
-use crate::{delimiter::Delimiter, keyword::Keyword, line_tokenizer::Rule, operator::Operator};
+use crate::{
+    delimiter::Delimiter, keyword::Keyword, line_tokenizer::Rule, operator::Operator,
+};
 
 pub type Sym = anon_core::interner::Symbol;
 

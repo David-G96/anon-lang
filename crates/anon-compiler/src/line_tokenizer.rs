@@ -89,9 +89,7 @@ impl<'a> Iterator for LineTokenizer<'a> {
         // 优先从缓存里读取，然后从迭代器self.pairs里读取，最后再返回None
         let line_pair = self.buffer.take().or_else(|| self.pairs.next())?;
         match line_pair.as_rule() {
-            Rule::NEWLINE => {
-                Some(Token::Newline)
-            }
+            Rule::NEWLINE => Some(Token::Newline),
             Rule::ATOM => {
                 let atom_pair = line_pair.into_inner().next().unwrap();
                 let token = match atom_pair.as_rule() {

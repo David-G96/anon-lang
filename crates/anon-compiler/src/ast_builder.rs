@@ -1,15 +1,9 @@
-use std::{
-    cell::RefCell,
-    collections::VecDeque,
-    rc::Rc,
-};
+use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 
 use anon_ast::func_decl::FuncDecl;
 use anon_core::interner::Interner;
 
-use crate::{
-    Lexer, token::Token, untyped_ast::UntypedAST,
-};
+use crate::{Lexer, token::Token, untyped_ast::UntypedAST};
 
 // flow： 优先从buffer的front读取，否则就从
 #[derive(Debug, Clone)]
@@ -39,9 +33,10 @@ impl<'a> Parser<'a> {
     // 窥视下一个 Tokens，但不消耗
     fn peek(&mut self) -> Option<&Token> {
         if self.buffered_tokens.is_empty()
-            && let Some(tok) = self.lexer.next() {
-                self.buffered_tokens.push_back(tok);
-            }
+            && let Some(tok) = self.lexer.next()
+        {
+            self.buffered_tokens.push_back(tok);
+        }
         self.buffered_tokens.front()
     }
 

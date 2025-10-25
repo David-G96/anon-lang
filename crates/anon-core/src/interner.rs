@@ -6,7 +6,7 @@ use string_interner::{StringInterner, symbol::SymbolU32};
 pub type SymbolIndex = u32;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Symbol(pub SymbolIndex);
+pub struct Symbol(pub(crate) SymbolIndex);
 
 /// a single thread interner
 #[derive(Debug, PartialEq, Eq, Clone)]
