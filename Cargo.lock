@@ -42,15 +42,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "anon-parser-deprecated"
-version = "0.1.0"
-dependencies = [
- "anon-core",
- "pest",
- "pest_derive",
-]
-
-[[package]]
 name = "anon-typer"
 version = "0.1.0"
 

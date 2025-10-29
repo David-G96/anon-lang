@@ -87,3 +87,19 @@ prevent unwanted/harmful effects
 badAdd = 
 
 ```
+
+Another advantage of Anon lang is its powerful type system.
+For example, if you have a cli app, which needs to connect to database & parse config file
+when initializing, you can write:
+
+```
+data AppContext = Config * Connection
+can
+  initialize :: () -> Self!CofigParseError*ConnectionError with FileRead
+  initialize = AppContext try parseConfig try connectDatabase
+
+```
+
+but what if 
+
+
