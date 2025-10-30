@@ -44,6 +44,9 @@ dependencies = [
 [[package]]
 name = "anon-typer"
 version = "0.1.0"
+dependencies = [
+ "anon-ast",
+]
 
 [[package]]
 name = "block-buffer"

@@ -1,15 +1,11 @@
 # The Anon programming language
 
-The Anon programming language is designed to be easy and elegant. We put utility and unification first in order to decrease the difficulties to use and remember.
-
-## The category of Anon
-
-To be specific, anon is a functional, statically typed, memory-automatically managed, out-of-the-box language and a set of tools.
+The Anon programming language is designed to be easy and elegant. We put utility and unification first in order to decrease the difficulties to use, read and remember.
 
 ## The features of Anon
 
 * Immutable is better than mutable
-* Every effect should be tracked
+* No effect should be hidden
 * Type does not imply the memory layout
 * Name is important
 * The behaviors of an object defines itself
@@ -20,18 +16,22 @@ To be specific, anon is a functional, statically typed, memory-automatically man
 ## Example code
 
 print hello world
-```
+
+``` ignore
 -- hello-world.an
 main :: () -> () with Out Console
 main = print "hello world!"
 ```
+
 interact with the real world
-```
+
+```ignore
 
 ```
 
 use refinement types for concision
-```
+
+```ignore
 -- refinement-types.an
 refine EmptyIntVec = Vec Int where Vec.len = 0
 refine OneElementIntVec = Vec Int where Vec.len = 1
@@ -44,7 +44,8 @@ sumOfVec x = [0] + sumOfVec x[1..]
 ```
 
 define data structure with ease
-```
+
+``` ignore
 -- data.an
 
 type Maybe a = data a {
@@ -83,23 +84,8 @@ can {
 ```
 
 prevent unwanted/harmful effects
-```
+
+``` ignore
 badAdd = 
 
 ```
-
-Another advantage of Anon lang is its powerful type system.
-For example, if you have a cli app, which needs to connect to database & parse config file
-when initializing, you can write:
-
-```
-data AppContext = Config * Connection
-can
-  initialize :: () -> Self!CofigParseError*ConnectionError with FileRead
-  initialize = AppContext try parseConfig try connectDatabase
-
-```
-
-but what if 
-
-

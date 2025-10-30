@@ -6,3 +6,7 @@ use crate::func_decl::FuncDecl;
 pub enum Definition<M> {
     FuncDecl(FuncDecl<M>),
 }
+
+#[cfg(test)]
+mod test{
+}

@@ -19,6 +19,5 @@ pub enum Pattern {
     Constructor { name: String, args: Vec<Pattern> },
 
     // 模式别名：将匹配结果绑定到变量，同时进行解构，例如: `(x, y) @ point`
-    // 注：可以先跳过，但高级语言通常需要
     Alias { name: String, pattern: Box<Pattern> },
 }
