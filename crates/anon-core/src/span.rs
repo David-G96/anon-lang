@@ -3,6 +3,7 @@ use crate::context::Contextual;
 pub type SpanIndex = u32;
 
 /// simple raw file string span
+/// the range of the span is `[start, end)`
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Span {
     start: SpanIndex,

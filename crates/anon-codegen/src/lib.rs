@@ -9,8 +9,7 @@ mod test {
         use inkwell::context::Context;
         use inkwell::execution_engine::{ExecutionEngine, JitFunction};
         use inkwell::module::Module;
-
-        use std::error::Error;
+        use inkwell::targets::{InitializationConfig, Target};
 
         /// Convenience type alias for the `sum` function.
         ///
@@ -26,7 +25,7 @@ mod test {
         }
 
         impl<'ctx> JITCodeGen<'ctx> {
-            fn jit_compile_sum(&self) -> Option<JitFunction<'_, SumFunc>> {
+            fn jit_compile_sum(&'_ self) -> Option<JitFunction<'_, SumFunc>> {
                 let i64_type = self.context.i64_type();
                 let fn_type = i64_type.fn_type(
                     &[i64_type.into(), i64_type.into(), i64_type.into()],
@@ -41,24 +40,27 @@ mod test {
                 let y = function.get_nth_param(1)?.into_int_value();
                 let z = function.get_nth_param(2)?.into_int_value();
 
-                let sum = self.builder.build_int_add(x, y, "sum").unwrap();
-                let sum = self.builder.build_int_add(sum, z, "sum").unwrap();
+                let sum = self.builder.build_int_add(x, y, "sum").ok()?;
+                let sum = self.builder.build_int_add(sum, z, "sum").ok()?;
 
-                self.builder.build_return(Some(&sum)).unwrap();
+                self.builder.build_return(Some(&sum)).ok()?;
 
                 unsafe { self.execution_engine.get_function("sum").ok() }
             }
         }
 
         fn mimic_main() -> Result<(), Box<dyn Error>> {
+            Target::initialize_native(&InitializationConfig::default())
+                .expect("Failed to initialize native target");
             let context = Context::create();
             let module = context.create_module("sum");
             let execution_engine =
                 module.create_jit_execution_engine(OptimizationLevel::None)?;
+            let builder = context.create_builder();
             let code_gen = JITCodeGen {
                 context: &context,
                 module,
-                builder: context.create_builder(),
+                builder,
                 execution_engine,
             };
 
