@@ -5,5 +5,7 @@ members = [
     "crates/anon-cli",
     "crates/anon-core",
     "crates/anon-compiler",
-    "crates/anon-driver", "crates/anon-typer",
+    "crates/anon-driver",
+    "crates/anon-typer",
+    "crates/anon-codegen",
 ]

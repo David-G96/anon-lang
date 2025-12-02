@@ -10,6 +10,7 @@ The Anon programming language is designed to be easy and elegant. We put utility
 * Name is important
 * The behaviors of an object defines itself
 * Readability and maintainability are important
+* Express your purpose directly
 * We will do want you need to do but don't want to
 * Leave the 1% edge case for us to get 200% of efficiency for you
 
